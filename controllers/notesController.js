@@ -1,4 +1,4 @@
-const note = require("../models/note.js")
+const Note = require("../models/note.js")
 
 async function getAllNotes(req, res) {
 
@@ -51,7 +51,7 @@ async function createNote(req, res) {
 
 async function getNoteById(req, res) {
 
-    const { id } = req.params.id
+    const id = req.params.id
     try {
         const note = await Note.findById(id)
         if (note) {
