@@ -1,20 +1,75 @@
 const Note = require("../models/note.js")
 
-async function getAllNotes(req, res) {
+async function fetchNotes(res, filter = {}, sort) {
+
+    if (sort) {
+        try {
+            const notes = await Note.find(filter).sort(sort)
+            return res.status(200).json({
+                    success : true,
+                    notes : notes
+                })
+        } catch (err) {
+            console.log(err)
+            return res.status(500).json({
+                    success : false,
+                    message : "Server error while fetching notes..."
+                })
+        }
+    }
 
     try {
-        const notes = await Note.find()
-        return res.status(200).json({
-                success : true,
-                notes : notes
-            })
-    } catch (err) {
-        console.log(err)
-        return res.status(500).json({
-                success : false,
-                message : "Server error while fetching notes..."
-            })
+            const notes = await Note.find(filter)
+            return res.status(200).json({
+                    success : true,
+                    notes : notes
+                })
+        } catch (err) {
+            console.log(err)
+            return res.status(500).json({
+                    success : false,
+                    message : "Server error while fetching notes..."
+                })
+        }
+
+}
+
+function sortNotes(req, res, filter) {
+
+    const sort = req.query.sort
+
+    if (!sort || sort == "") {
+        return fetchNotes(res, filter)
     }
+    if (sort == "newest"){
+        return fetchNotes(res, filter, {_id: -1})
+    }
+    if (sort == "oldest") {
+        return fetchNotes(res, filter, {_id: 1})
+    }
+
+}
+
+async function getAllNotes(req, res) {
+
+    const search = req.query.search
+
+    if (!search || search == "") {
+
+        return  sortNotes(req, res, {})
+
+    }
+
+    const filter = {
+
+        $or : [
+            {title: { $regex : search, $options: "i"}},
+            {content: { $regex: search, $options: "i"}}
+        ]
+    }
+
+    return sortNotes(req, res, filter)
+    
 }
 
 async function createNote(req, res) {
