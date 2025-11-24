@@ -3,10 +3,14 @@ const cors = require("cors")
 const express = require("express")
 const app = express()
 const mongoose = require("mongoose")
-const notesRoute = require("./routes/notes.js")
+const notesRoute = require("./routes/noteRoute.js")
+const authRoute = require("./routes/authRoute.js")
+const cookieParser = require("cookie-parser")
 
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
+
+app.use(cookieParser())
 
 // sanitize middleware
 function sanitizeInput(req, res, next)  {
@@ -21,11 +25,9 @@ function sanitizeInput(req, res, next)  {
 // using sanitize middleware
 app.use(sanitizeInput)
 
-app.use("/api/notes", notesRoute)
+app.use("/api/auth", authRoute)
 
-app.get("/", (req, res) => {
-    res.send("Working...")
-})
+app.use("/api/notes", notesRoute)
 
 // error middleware
 app.use((err, req, res, next) => {
