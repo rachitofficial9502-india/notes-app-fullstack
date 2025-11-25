@@ -4,6 +4,8 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const crypto = require("crypto")
 
+const { generateAccessToken, generateRefreshToken } = require("../helpers/tokenGenerator.js")
+
 async function signUp(req, res) {
 
     const { name, email, password } = req.body
@@ -65,17 +67,21 @@ async function login(req, res) {
         })
     }
 
-    const secret = process.env.JWT_SECRET
-    const payload = {
-        id : user._id
-    }
-    const token = jwt.sign(payload, secret, { expiresIn: "1m"})
+    const payload = {id: user._id}
 
-    return res.status(200).cookie("token", token, {
+    const accessToken = generateAccessToken(payload)
+    const refreshToken = generateRefreshToken(payload)
+
+    return res.status(200).cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: false,
         sameSite: "strict",
-        maxAge: 24*60*60*1000
+        maxAge: 15*60*1000 // 15 mins
+    }).cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 7*24*60*60*1000 // 7 days
     }).json({
         success: true,
         user: user.name,
@@ -83,6 +89,16 @@ async function login(req, res) {
         token: token
     })
 
+}
+
+function logout(req, res) {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+        success: true,
+        message: "Logged out successfully"
+    });
 }
 
 // verifying token middleware
@@ -93,23 +109,64 @@ function verifyToken(req, res, next) {
     if (!token) {
         res.status(401).json({
             success: false,
-            message: "No token provided."
+            message: "Access token missing. Login again."
         })
     }
     
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        const decoded = jwt.verify(token, process.env.JWT_ACCESSTOKEN)
         req.user = decoded.id
         next()
     } catch (err) {
         return res.status(401).json({
             success: false,
-            message: "Invalid or expired token."
+            message: "Acess token expired. Refresh again."
+        })
+    }
+
+}
+
+function refreshToken(req, res) {
+
+    const token = req.cookies.refreshToken
+
+    if (!token) {
+
+        return res.status(401).json({
+            message: "Refresh token missing! Login again."
+        })
+    }
+
+    
+
+    try {
+
+        const decoded = jwt.verify(token, process.env.JWT_REFRESHTOKEN)
+
+        const newAccessToken = generateAccessToken({id: decoded.id})
+
+        res.cookie("accessToken", newAccessToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "strict",
+            maxAge: 15 * 1000 * 60 // 15 min
+        })
+        return res.status(200).json({
+            success: true,
+            message: "Refreshed access token."
+        })
+    } catch (err) {
+
+        res.clearCookie("accessToken")
+        res.clearCookie("refreshToken")
+
+        return res.status(403).json({
+            message: "You need to log in again!"
         })
     }
 
 }
 
 module.exports = {
-    signUp, login, verifyToken
+    signUp, login, logout, verifyToken, refreshToken
 }
