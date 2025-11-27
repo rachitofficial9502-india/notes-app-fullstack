@@ -1,11 +1,9 @@
 const jwt = require("jsonwebtoken")
 
-function generateAccessToken() {
+function generateAccessToken(payload) {
 
     const secret = process.env.JWT_ACCESSTOKEN
-        const payload = {
-            id : user._id
-        }
+        
     const expiresIn = process.env.ACCESS_TOKEN_EXPIRES
     const token = jwt.sign(payload, secret, { expiresIn: expiresIn})
 
@@ -13,12 +11,10 @@ function generateAccessToken() {
 
 }
 
-function generateRefreshToken() {
+function generateRefreshToken(payload) {
 
     const secret = process.env.JWT_REFRESHTOKEN
-        const payload = {
-            id : user._id
-        }
+        
     const expiresIn = process.env.REFRESH_TOKEN_EXPIRES
     const token = jwt.sign(payload, secret, { expiresIn: expiresIn})
 

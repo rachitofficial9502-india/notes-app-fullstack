@@ -6,11 +6,8 @@ const mongoose = require("mongoose")
 const notesRoute = require("./routes/noteRoute.js")
 const authRoute = require("./routes/authRoute.js")
 const cookieParser = require("cookie-parser")
+const path = require("path")
 
-app.use(express.json())
-app.use(express.urlencoded({extended : true}))
-
-app.use(cookieParser())
 
 // sanitize middleware
 function sanitizeInput(req, res, next)  {
@@ -22,12 +19,30 @@ function sanitizeInput(req, res, next)  {
     next()
 }
 
-// using sanitize middleware
-app.use(sanitizeInput)
+// ⭐ CORS MUST BE FIRST
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
+
+// ⭐ Must come after CORS
+app.use(cookieParser());
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// sanitize
+app.use(sanitizeInput);
 
 app.use("/api/auth", authRoute)
 
 app.use("/api/notes", notesRoute)
+
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+});
 
 // error middleware
 app.use((err, req, res, next) => {
